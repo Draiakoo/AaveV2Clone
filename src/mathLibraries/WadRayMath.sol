@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 library WadRayMath {
 
@@ -29,53 +29,53 @@ library WadRayMath {
     }
 
     // Multiplication between 2 wad numbers rounding half up
-    function wadMul(uint256 a, uint256 b) internal pure returns(uint256 result){
+    function wadMul(uint256 a, uint256 b) internal pure returns(uint256){
         if(a == 0 || b == 0){
-            result = 0;
+            return 0;
         }
 
         require(a <= (type(uint256).max - halfWAD) / b);
 
-        result = (a * b + halfWAD) / WAD;
+        return (a * b + halfWAD) / WAD;
     }
 
-    function wadDiv(uint256 a, uint256 b) internal pure returns(uint256 result){
+    function wadDiv(uint256 a, uint256 b) internal pure returns(uint256){
         require(b != 0);
         uint256 halfB = b / 2;
 
         require(a <= (type(uint256).max - halfB) / WAD);
 
-        result = (a * WAD + halfB) / b;
+        return (a * WAD + halfB) / b;
     }
 
-    function rayMul(uint256 a, uint256 b) internal pure returns(uint256 result){
+    function rayMul(uint256 a, uint256 b) internal pure returns(uint256){
         if(a == 0 || b == 0){
-            result = 0;
+            return 0;
         }
 
         require(a <= (type(uint256).max - halfRAY) / b);
 
-        result = (a * b + halfRAY) / RAY;
+        return (a * b + halfRAY) / RAY;
     }
 
-    function rayDiv(uint256 a, uint256 b) internal pure returns(uint256 result){
+    function rayDiv(uint256 a, uint256 b) internal pure returns(uint256){
         require(b != 0);
         uint256 halfB = b / 2;
 
         require(a <= (type(uint256).max - halfB) / RAY);
 
-        result = (a * RAY + halfB) / b;
+        return (a * RAY + halfB) / b;
     }
 
-    function rayToWad(uint256 number) internal pure returns(uint256 wadResult){
+    function rayToWad(uint256 number) internal pure returns(uint256){
         uint256 halfRatio = WAD_RAY_RATIO / 2;
         uint256 result = halfRatio + number;
         require(result >= halfRatio);
 
-        wadResult = result / WAD_RAY_RATIO;
+        return result / WAD_RAY_RATIO;
     }
 
-    function wadToRay(uint256 number) internal pure returns(uint256 rayResult){
+    function wadToRay(uint256 number) internal pure returns(uint256){
         uint256 result = number * WAD_RAY_RATIO;
         require(result / WAD_RAY_RATIO == number);
         return result;

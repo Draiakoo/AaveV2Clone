@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 library PercentageMath {
     uint256 constant PERCENTAGE_FACTOR = 1e4;                 // 10000 means 100%

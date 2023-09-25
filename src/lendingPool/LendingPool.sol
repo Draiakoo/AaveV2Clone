@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {LendingPoolStorage} from "./LendingPoolStorage.sol";
 import {LendingPoolAddressesProvider} from "./LendingPoolAddressesProvider.sol";
 import {DataTypes} from "../types/DataTypes.sol";
+import {ILendingPool} from "../interfaces/ILendingPool.sol";
 
 contract LendingPool is LendingPoolStorage {
 
