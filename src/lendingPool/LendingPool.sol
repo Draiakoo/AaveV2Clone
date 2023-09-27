@@ -10,16 +10,22 @@ import {ILendingPool} from "../interfaces/ILendingPool.sol";
 import {ValidationLogic} from "../logicLibraries/ValidationLogic.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AToken} from "../tokens/AToken.sol";
+import {StableDebtToken} from "../tokens/StableDebtToken.sol";
+import {VariableDebtToken} from "../tokens/VariableDebtToken.sol";
+import {AToken} from "../tokens/AToken.sol";
 import {UserInformationLibrary} from "../informationLibraries/UserInformationLibrary.sol";
+import {ReserveInformationLibrary} from "../informationLibraries/ReserveInformationLibrary.sol";
+import {IPriceOracleGetter} from "../interfaces/IPriceOracleGetter.sol";
 
 contract LendingPool is LendingPoolStorage {
 
     using ReserveLogic for DataTypes.ReserveData;
+    using ReserveInformationLibrary for DataTypes.ReserveConfigurationMap;
     using UserInformationLibrary for DataTypes.UserConfigurationMap;
 
     event Deposit(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount);
     event Withdraw(address indexed reserve, address indexed user, address indexed to, uint256 amount);
-    event Borrow(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint256 borrowRateMode,uint256 borrowRate);
+    event Borrow(address indexed reserve, address user, address indexed onBehalfOf, uint256 amount, uint256 borrowRateMode, uint256 borrowRate);
     event Repay(address indexed reserve, address indexed user, address indexed repayer, uint256 amount);
     event Swap(address indexed reserve, address indexed user, uint256 rateMode);
     event ReserveUsedAsCollateralEnabled(address indexed reserve, address indexed user);
@@ -87,9 +93,127 @@ contract LendingPool is LendingPoolStorage {
         emit Deposit(asset, msg.sender, onBehalfOf, amount);
     }
 
-    function borrow(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) external whenNotPaused{}
+    // Steps to perform a borrow:
+    //      1-Validate if the borrow can be executed (see validation borrow)
+    //      2-Update indexes
+    //      3-Mint the amount of specified debt
+    //      4-Update the reserve rates
+    //      5-Transfer the borrowed tokens to the user
+    //      6-Emit the event
+    function borrow(address asset, uint256 amount, uint256 interestRateMode, address onBehalfOf) external whenNotPaused{
+        DataTypes.ReserveData storage reserve = _reserves[asset];
+        DataTypes.UserConfigurationMap storage userConfig = _usersConfig[onBehalfOf];
 
-    function withdraw(address asset, uint256 amount, address receiver) external whenNotPaused returns(uint256){}
+        address oracle = _addressesProvider.getAddress("PRICE_ORACLE");
+
+        uint256 amountInETH = IPriceOracleGetter(oracle).getAssetPrice(asset) * amount / (10**reserve.configuration.getDecimals());
+
+        ValidationLogic.validateBorrow(
+            asset,
+            reserve,
+            onBehalfOf,
+            amount,
+            amountInETH,
+            interestRateMode,
+            _maxStableRateBorrowSizePercent,
+            _reserves,
+            userConfig,
+            _reserveList,
+            _reservesCount,
+            oracle
+        );
+
+        reserve.updateIndexes();
+
+        uint256 currentStableRate;
+        bool isFirstBorrowing;
+
+        if(DataTypes.InterestRateMode(interestRateMode) == DataTypes.InterestRateMode.STABLE){
+            currentStableRate = reserve.currentStableBorrowRate;
+
+            isFirstBorrowing = StableDebtToken(reserve.stableDebtTokenAddress).mint(
+                msg.sender,
+                onBehalfOf,
+                amount,
+                currentStableRate
+            );
+        } else {
+            isFirstBorrowing = VariableDebtToken(reserve.variableDebtTokenAddress).mint(
+                msg.sender,
+                onBehalfOf,
+                amount,
+                reserve.variableBorrowIndex
+            );
+        }
+
+        if(isFirstBorrowing){
+            userConfig.setBorrowing(reserve.id, true);
+        }
+
+        reserve.updateInterestRates(
+            asset,
+            reserve.aTokenAddress,
+            0,
+            amount
+        );
+
+        AToken(reserve.aTokenAddress).transferUnderlyingTo(msg.sender, amount);
+
+        emit Borrow(
+            asset,
+            msg.sender,
+            onBehalfOf,
+            amount,
+            interestRateMode,
+            DataTypes.InterestRateMode(interestRateMode) == DataTypes.InterestRateMode.STABLE
+                ? currentStableRate
+                : reserve.currentVariableBorrowRate
+        );
+    }
+
+    // Steps to perform a withdraw:
+    //      1-Validate if the withdraw can be executed (see validation withdraw)
+    //      2-Update indexes
+    //      3-Update the reserve rates
+    //      4-Burn aTokens and send the underlying amount to receiver
+    //      5-If the user burnt all his aTokens disable the asset borrowing
+    //      6-Emit the event
+    function withdraw(address asset, uint256 amount, address receiver) external whenNotPaused returns(uint256){
+        DataTypes.ReserveData storage reserve = _reserves[asset];
+
+        address aTokenAddress = reserve.aTokenAddress;
+        uint256 userBalance = AToken(aTokenAddress).balanceOf(msg.sender);
+
+        uint256 amountToWithdraw = amount == type(uint256).max
+                                        ? userBalance
+                                        : amount;
+        
+        ValidationLogic.validateWithdraw(
+            asset,
+            amountToWithdraw,
+            userBalance,
+            _reserves,
+            _usersConfig[msg.sender],
+            _reserveList,
+            _reservesCount,
+            _addressesProvider.getAddress("PRICE_ORACLE")
+        );
+
+        reserve.updateIndexes();
+
+        reserve.updateInterestRates(asset, aTokenAddress, 0, amountToWithdraw);
+
+        if(amountToWithdraw == userBalance){
+            _usersConfig[msg.sender].setUsingAsCollateral(reserve.id, false);
+            emit ReserveUsedAsCollateralDisabled(asset, msg.sender);
+        }
+
+        AToken(aTokenAddress).burn(msg.sender, receiver, amountToWithdraw, reserve.liquidityIndex);
+
+        emit Withdraw(asset, msg.sender, receiver, amountToWithdraw);
+
+        return amountToWithdraw;
+    }
 
     function repay(address asset, uint256 amount, uint256 rateMode, address onBehalfOf) external whenNotPaused returns(uint256){}
 

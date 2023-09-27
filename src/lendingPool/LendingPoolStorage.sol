@@ -18,6 +18,8 @@ contract LendingPoolStorage{
 
     mapping(uint256 => address) internal _reserveList;
 
+    uint256 internal _reservesCount;
+
     bool internal _paused;
 
     uint256 internal _maxStableRateBorrowSizePercent;
