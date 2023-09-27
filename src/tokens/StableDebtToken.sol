@@ -36,8 +36,8 @@ contract StableDebtToken is DebtTokenBase{
     mapping(address user => uint256 stableRate) internal _usersStableRate;
     uint40 internal _totalSupplyTimestamp;
 
-    ILendingPool internal _pool;
-    address internal _underlyingAsset;
+    ILendingPool internal immutable _pool;
+    address internal immutable _underlyingAsset;
 
     constructor(ILendingPool pool, address underlyingAsset, uint8 decimals, string memory name, string memory symbol){
         _pool = pool;
@@ -222,10 +222,19 @@ contract StableDebtToken is DebtTokenBase{
         lastTotalSupplyTimestampUpdate = _totalSupplyTimestamp;
     }
 
+    function totalSupply() public view override returns(uint256 result){
+        result = accumulatedTotalSupply(_avgStableRate);
+    }
+
     function accumulatedTotalSupply(uint256 avgRate) public view returns(uint256 accumulatedSupply){
         uint256 principalTotalSupply = super.totalSupply();
 
         accumulatedSupply = (avgRate.calculateCompoundedInterest(_totalSupplyTimestamp, block.timestamp)).rayMul(principalTotalSupply);
+    }
+
+    function getTotalSupplyAndAvgRate() public view returns(uint256 accumTotalSupply, uint256 avgStableRate){
+        avgStableRate = _avgStableRate;
+        accumTotalSupply = accumulatedTotalSupply(avgStableRate);
     }
 
 
@@ -248,13 +257,11 @@ contract StableDebtToken is DebtTokenBase{
     }
 
     function _mint(address user, uint256 amount) internal override{
-        uint256 oldUserBalance = _balances[user];
-        _balances[user] = oldUserBalance + amount;
+        _balances[user] += amount;
     }
 
     function _burn(address user, uint256 amount) internal override{
-        uint256 oldUserBalance = _balances[user];
-        _balances[user] = oldUserBalance - amount;
+        _balances[user] -= amount;
     }
 
     function _getUnderlyingAssetAddress() internal view override returns(address underlyingAsset){

@@ -14,7 +14,7 @@ contract LendingPoolStorage{
     LendingPoolAddressesProvider internal _addressesProvider;
 
     mapping(address => DataTypes.ReserveData) internal _reserves;
-    mapping(address => DataTypes.UserConfigurationMap) internal _userConfig;
+    mapping(address => DataTypes.UserConfigurationMap) internal _usersConfig;
 
     mapping(uint256 => address) internal _reserveList;
 
