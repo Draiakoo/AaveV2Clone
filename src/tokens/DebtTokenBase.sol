@@ -12,7 +12,7 @@ abstract contract DebtTokenBase is ERC20("DebtToken", "DT"){
     mapping(address user => mapping(address allowedBorrower => uint256 amount)) internal _borrowAllowances;
 
     modifier onlyLendingPool {
-        require(_msgSender() == _getLendingPool());
+        require(_msgSender() == _getLendingPool(), "only callable by lending pool");
         _;
     }
 

@@ -88,9 +88,9 @@ library ReserveLogic {
                 reserve.configuration.getReserveFactor()
             );
 
-        require(vars.newLiquidityRate <= type(uint128).max);
-        require(vars.newStableRate <= type(uint128).max);
-        require(vars.newVariableRate <= type(uint128).max);
+        require(vars.newLiquidityRate <= type(uint128).max, "liquidity rate overflow");
+        require(vars.newStableRate <= type(uint128).max, "stable rate overflow");
+        require(vars.newVariableRate <= type(uint128).max, "variable rate overflow");
 
         reserve.currentLiquidityRate = uint128(vars.newLiquidityRate);
         reserve.currentStableBorrowRate = uint128(vars.newStableRate);
@@ -121,7 +121,7 @@ library ReserveLogic {
             uint256 cumulatedLiquidityInterest = MathUtils.calculateLinearInterest(currentLiquidityRate, lastUpdatedTimestamp);
             newLiquidityIndex = cumulatedLiquidityInterest.rayMul(previousLiquidityIndex);
 
-            require(newLiquidityIndex <= type(uint128).max);
+            require(newLiquidityIndex <= type(uint128).max, "liquidity index overflow");
 
             reserve.liquidityIndex = uint128(newLiquidityIndex);
 
@@ -129,7 +129,7 @@ library ReserveLogic {
                 uint256 cumulatedVariableBorrowInterest = MathUtils.calculateCompoundedInterest(reserve.currentVariableBorrowRate, lastUpdatedTimestamp, block.timestamp);
                 newVariableBorrowIndex = cumulatedVariableBorrowInterest.rayMul(previousVariableBorrowIndex);
 
-                require(newVariableBorrowIndex <= type(uint128).max);
+                require(newVariableBorrowIndex <= type(uint128).max, "variable borrow index overflow");
                 reserve.variableBorrowIndex = uint128(newVariableBorrowIndex);
             }
         }
@@ -139,38 +139,20 @@ library ReserveLogic {
         _mintToTreasury(reserve, principalVariableDebt, previousVariableBorrowIndex, newLiquidityIndex, newVariableBorrowIndex, lastUpdatedTimestamp);
     }
 
-    // function _updateIndexes(
-    //     DataTypes.ReserveData storage reserve,
-    //     uint256 principalVariableDebt,
-    //     uint256 previousVariableBorrowIndex,
-    //     uint256 previousLiquidityIndex,
-    //     uint40 lastUpdatedTimestamp
-    // ) internal returns(uint256, uint256) {
-    //     uint256 currentLiquidityRate = reserve.currentLiquidityRate;
+    function cumulateToLiquidityIndex(
+        DataTypes.ReserveData storage reserve,
+        uint256 totalLiquidity,
+        uint256 amount
+    ) internal {
+        uint256 amountToLiquidityRatio = amount.wadToRay().rayDiv(totalLiquidity.wadToRay());
 
-    //     uint256 newLiquidityIndex = previousLiquidityIndex;
-    //     uint256 newVariableBorrowIndex = previousVariableBorrowIndex;
+        uint256 result = amountToLiquidityRatio + WadRayMath.ray();
 
-    //     if(currentLiquidityRate > 0){
-    //         uint256 cumulatedLiquidityInterest = MathUtils.calculateLinearInterest(currentLiquidityRate, lastUpdatedTimestamp);
-    //         newLiquidityIndex = cumulatedLiquidityInterest.rayMul(previousLiquidityIndex);
+        result = result.rayMul(reserve.liquidityIndex);
+        require(result <= type(uint128).max, "liquidity index overflow");
 
-    //         require(newLiquidityIndex <= type(uint128).max);
-
-    //         reserve.liquidityIndex = uint128(newLiquidityIndex);
-
-    //         if(principalVariableDebt != 0){
-    //             uint256 cumulatedVariableBorrowInterest = MathUtils.calculateCompoundedInterest(reserve.currentVariableBorrowRate, lastUpdatedTimestamp, block.timestamp);
-    //             newVariableBorrowIndex = cumulatedVariableBorrowInterest.rayMul(previousVariableBorrowIndex);
-
-    //             require(newVariableBorrowIndex <= type(uint128).max);
-    //             reserve.variableBorrowIndex = uint128(newVariableBorrowIndex);
-    //         }
-    //     }
-
-    //     reserve.lastUpdateTimestamp = uint40(block.timestamp);
-    //     return(newLiquidityIndex, newVariableBorrowIndex);
-    // }
+        reserve.liquidityIndex = uint128(result);
+    }
 
     struct MintToTreasuryLocalVars {
         uint256 currentStableDebt;

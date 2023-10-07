@@ -46,7 +46,7 @@ contract AToken is ERC20("AaveToken", "AT") {
     }
 
     modifier onlyLendingPool {
-        require(_msgSender() == _getLendingPool());
+        require(_msgSender() == _getLendingPool(), "only callable by lending pool");
         _;
     }
 
@@ -54,7 +54,7 @@ contract AToken is ERC20("AaveToken", "AT") {
 
         uint256 previousBalance = super.balanceOf(user);
         uint256 amountToMint = amount.rayDiv(index);
-        require(amountToMint != 0);
+        require(amountToMint != 0, "amount to mint too small");
 
         _mint(user, amountToMint);
 
@@ -67,7 +67,7 @@ contract AToken is ERC20("AaveToken", "AT") {
     function burn(address user, address receiver, uint256 amount, uint256 index) external onlyLendingPool {
 
         uint256 amountToBurn = amount.rayDiv(index);
-        require(amountToBurn != 0);
+        require(amountToBurn != 0, "amount to burn too small");
 
         _burn(user, amountToBurn);
         IERC20(_underlyingAsset).transfer(receiver, amount);

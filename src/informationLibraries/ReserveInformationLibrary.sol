@@ -33,7 +33,7 @@ library ReserveInformationLibrary {
     // function to set the ltv value in the reserve configuration
     function setLtv(DataTypes.ReserveConfigurationMap storage map, uint256 ltv) internal
     {
-        require(ltv <= type(uint16).max);
+        require(ltv <= type(uint16).max, "ltv too large");
         map.data = (map.data & ltvMask) | ltv;
     }
 
@@ -49,7 +49,7 @@ library ReserveInformationLibrary {
     // function to set the liquidation threshold value in the reserve configuration
     function setLiquidationThreshold(DataTypes.ReserveConfigurationMap storage map, uint256 liquidityThreshold) internal
     {
-        require(liquidityThreshold <= type(uint16).max);
+        require(liquidityThreshold <= type(uint16).max, "liquidity threshold too large");
         map.data = (map.data & thresholdMask) | (liquidityThreshold << thresholdByteOffset);
     }
 
@@ -65,7 +65,7 @@ library ReserveInformationLibrary {
     // function to set the liquidation bonus value in the reserve configuration
     function setLiquidationBonus(DataTypes.ReserveConfigurationMap storage map, uint256 liquidationBonus) internal
     {
-        require(liquidationBonus <= type(uint16).max);
+        require(liquidationBonus <= type(uint16).max, "liquidity bonus too large");
         map.data = (map.data & liquidationBonusMask) | (liquidationBonus << liquidationBonusByteOffset);
     }
 
@@ -81,7 +81,7 @@ library ReserveInformationLibrary {
     // function to set the decimals value in the reserve configuration
     function setDecimals(DataTypes.ReserveConfigurationMap storage map, uint256 decimals) internal
     {
-        require(decimals <= type(uint8).max);
+        require(decimals <= type(uint8).max, "decimals too large");
         map.data = (map.data & decimalsMask) | (decimals << decimalsByteOffset);
     }
 
@@ -153,7 +153,7 @@ library ReserveInformationLibrary {
     // function to set the reserveFactor value in the reserve configuration
     function setReserveFactor(DataTypes.ReserveConfigurationMap storage map, uint256 reserveFactor) internal
     {
-        require(reserveFactor <= type(uint16).max);
+        require(reserveFactor <= type(uint16).max, "reserve factor too large");
         map.data = (map.data & reserveFactorMask) | (reserveFactor << reserveFactorByteOffset);
     }
 

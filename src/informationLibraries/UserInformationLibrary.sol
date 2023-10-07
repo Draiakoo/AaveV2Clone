@@ -9,7 +9,7 @@ library UserInformationLibrary{
     uint256 internal constant borrowingAnyMask = 0x5555555555555555555555555555555555555555555555555555555555555555;
 
     function requireValidIndex(uint256 assetIndex) internal pure {
-        require(assetIndex < 128);
+        require(assetIndex < 128,  "asset index out of range");
     }
 
     modifier validIndex(uint256 assetIndex){

@@ -12,13 +12,13 @@ contract LendingPoolAddressesProvider is Ownable{
     string private _marketName;
     mapping(bytes32 => address) private _addresses;
 
-    bytes32 private constant LENDING_POOL = 'LENDING_POOL';
-    bytes32 private constant LENDING_POOL_CONFIGURATOR = 'LENDING_POOL_CONFIGURATOR';
-    bytes32 private constant POOL_ADMIN = 'POOL_ADMIN';
-    bytes32 private constant EMERGENCY_ADMIN = 'EMERGENCY_ADMIN';
-    bytes32 private constant LENDING_POOL_COLLATERAL_MANAGER = 'COLLATERAL_MANAGER';
-    bytes32 private constant PRICE_ORACLE = 'PRICE_ORACLE';
-    bytes32 private constant LENDING_RATE_ORACLE = 'LENDING_RATE_ORACLE';
+    bytes32 private constant LENDING_POOL = "LENDING_POOL";
+    bytes32 private constant LENDING_POOL_CONFIGURATOR = "LENDING_POOL_CONFIGURATOR";
+    bytes32 private constant POOL_ADMIN = "POOL_ADMIN";
+    bytes32 private constant EMERGENCY_ADMIN = "EMERGENCY_ADMIN";
+    bytes32 private constant LENDING_POOL_COLLATERAL_MANAGER = "COLLATERAL_MANAGER";
+    bytes32 private constant PRICE_ORACLE = "PRICE_ORACLE";
+    bytes32 private constant LENDING_RATE_ORACLE = "LENDING_RATE_ORACLE";
 
     constructor(string memory marketName) Ownable(msg.sender){
         _marketName = marketName;

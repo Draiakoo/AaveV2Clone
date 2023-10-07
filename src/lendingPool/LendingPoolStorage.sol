@@ -24,7 +24,12 @@ contract LendingPoolStorage{
 
     uint256 internal _maxStableRateBorrowSizePercent;
 
-    uint256 internal _flashLoandPremiumTotal;
+    uint256 internal _flashLoanPremiumTotal;
 
     uint256 internal _maxNumberOfReserves;
+
+    address internal _owner;
+
+    // Maximum percentage of debt to cover 50%
+    uint256 internal constant LIQUIDATION_CLOSE_FACTOR_PERCENT = 5000;
 }
